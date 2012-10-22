@@ -10,7 +10,7 @@ Here is how to use it.
 
 ### Download it
 
-Clone this repository and initialize a new git 
+Clone this repository and initialize a new git repository.
 
     git clone --depth 0 git://github.com/nickbarth/SinatraApp.git NEWAPP
     cd $_
@@ -19,7 +19,7 @@ Clone this repository and initialize a new git
 
 ### Or run the installer
 
-  sh https://raw.github.com/nickbarth/SinatraApp/master/install.sh NEWAPP
+    curl -L https://raw.github.com/nickbarth/SinatraApp/master/install.sh | sh -S NEWAPP
 
 ### License
 WTFPL &copy; 2012 Nick Barth

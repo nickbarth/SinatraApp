@@ -1,47 +1,79 @@
 #!/usr/bin/env ruby
 
 require 'fileutils'
+require 'ostruct'
 require 'erb'
 
-# template vars
+class SinatraGen
+  attr_accessor :template_dir
+  attr_accessor :target_path
+  attr_accessor :template_data
+  attr_writer :source_files
 
-application = 'Application'
-user = 'User'
-port = 'Port'
-nginx_config = 'Nginx Config'
-unix_socket = 'Unix Socket'
-server_ip = 'Server IP'
+  def initialize(template_dir, target_path, template_data)
+    @template_dir = template_dir
+    @template_data = template_data
+    @target_path = target_path
+  end
 
+  def run
+    source_files.each do |source_file|
+      transfer_file source_file
+    end
+  end
+
+  def source_files
+    @source_files ||= ->{
+      Dir[ File.join(template_dir, '*.*'),
+           File.join(template_dir, '**/*.*') ].
+      map!{|file| file.gsub(@template_dir, '')}
+    }[]
+  end
+
+  def template_file?(filename)
+    not filename[/erb/].nil?
+  end
+
+  def file_data(base_file)
+    file = File.basename(base_file)
+    path = File.dirname(base_file)
+    new_path = File.join(@target_path, path)
+    new_file = File.join(new_path, file.gsub('.erb', ''))
+    [file, path, new_path, new_file]
+  end
+
+  def copy_file(source, dest)
+    FileUtils.cp(File.join(@template_dir, source), dest)
+  end
+
+  def template_file(source, dest)
+    File.open(dest, 'w') do |source_file|
+      template_file = File.join(@template_dir, source)
+      template = File.read(template_file)
+      source_file << ERB.new(template).
+        result(@template_data.instance_eval { binding })
+    end
+  end
+
+  def transfer_file(base_file)
+    file, path, new_path, new_file = file_data(base_file)
+    FileUtils.mkdir_p(new_path)
+    if template_file?(base_file)
+      template_file(base_file, new_file)
+    else
+      copy_file(base_file, new_file)
+    end
+  end
+end
+
+template_data = OpenStruct.new application:  'Application',
+                               user:         'User',
+                               port:         'Port',
+                               nginx_config: 'Nginx Config',
+                               unix_socket:  'Unix Socket',
+                               server_ip:    'Server IP'
 template_dir = './template'
 target_path = './test'
 
-all_files = Dir[ File.join(template_dir, '*.*'),
-                 File.join(template_dir, '**/*.*')]
-all_files.map!{|x| x.gsub(template_dir, '')}
-
-template_files = all_files.find_all{|x| not x[/erb/].nil?}
-base_files = all_files.find_all{|x| x[/erb/].nil?}
-
-base_files.each do |base_file|
-  file = File.basename(base_file)
-  path = File.dirname(base_file)
-  new_path = File.join(target_path, path)
-
-  FileUtils.mkdir_p(new_path)
-  FileUtils.cp File.join(template_dir, base_file),
-               File.join(new_path, file)
-end
-
-template_files.each do |base_file|
-  file = File.basename(base_file)
-  path = File.dirname(base_file)
-  new_path = File.join(target_path, path)
-  new_file = File.join(new_path, file.gsub('.erb', ''))
-
-  FileUtils.mkdir_p(new_path)
-  File.open(new_file, 'w') do |source_file|
-    template_file = File.join(template_dir, base_file)
-    template = File.read(template_file)
-    source_file << ERB.new(template).result(binding)
-  end
-end
+generator = SinatraGen.new(template_dir, target_path, template_data)
+generator.run

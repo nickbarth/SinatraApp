@@ -1,8 +1,7 @@
-#!/usr/bin/env ruby
-
 require 'fileutils'
 require 'ostruct'
 require 'erb'
+require 'sinatragen/version'
 
 class SinatraGen
   attr_accessor :template_dir
@@ -65,15 +64,3 @@ class SinatraGen
     end
   end
 end
-
-template_data = OpenStruct.new application:  'Application',
-                               user:         'User',
-                               port:         'Port',
-                               nginx_config: 'Nginx Config',
-                               unix_socket:  'Unix Socket',
-                               server_ip:    'Server IP'
-template_dir = './template'
-target_path = './test'
-
-generator = SinatraGen.new(template_dir, target_path, template_data)
-generator.run
